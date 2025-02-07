@@ -1,0 +1,51 @@
+<services>
+    <service name="obs_scm">
+        <param name="url">https://github.com/luaposix/luaposix</param>
+        <param name="scm">git</param>
+        <param name="revision">master</param>
+        <param name="without-version">enable</param>
+        <param name="versionformat">@PARENT_TAG@</param>
+        <param name="versionrewrite-pattern">v(.*)</param>
+    </service>
+    <service name="perl_regex" mode="buildtime">
+        <param name="regex">
+if (index($_, 'version: ') == 0) {
+    $_ = 'version="' . substr($_, 9, length($_) - 10) . '-1"';
+} else {
+    $_ = '';
+}</param>
+        <param name="file">luaposix.obsinfo</param>
+        <param name="outfile">luaposix.obsnext</param>
+    </service>    
+    <service name="perl_regex" mode="buildtime">
+        <param name="regex">
+if (index($_, 'local') > -1) {
+    s/git/scm/g;
+}
+</param>
+        <param name="file">luaposix/luaposix-git-1.rockspec</param>
+        <param name="outfile">luaposix.obsprev</param>
+    </service>
+    <service name="lua2pack_generate" mode="buildtime">
+        <param name="rockspec">glob://./luaposix.obsprev</param>
+        <param name="rockspec">glob://./luaposix.obsnext</param>
+        <param name="template">rock.rockspec</param>
+    </service>
+    <service name="lua2pack_generate" mode="buildtime">
+        <param name="rockspec">glob://./*.rockspec</param>
+        <param name="template">obs.obsinfo</param>
+    </service>
+    <service name="lua2pack_generate" mode="buildtime">
+        <param name="rockspec">glob://./*.rockspec</param>
+        <param name="template">generic.spec</param>
+        <param name="luacode">
+add_build_requires = {"python3-lua.rock"}
+add_macro = {"luarocks_pkg_build() %{_require_luadist}export USER='' ; lua%{1} build-aux/luke PREFIX=%{_prefix} all ; lua%{1} build-aux/luke PREFIX=.lua%{1} INST_LIBDIR=.lua%{1}/lib INST_LUADIR=.lua%{1}/lua install ; create_luarock --srcdir .lua%{1} --rockspec '%{luarocks_pkg_rockspec}' --outdir .luarocks/lua%{1} "}
+        </param>
+    </service>
+    <service name="tar" mode="buildtime"/>
+    <service name="recompress" mode="buildtime">
+        <param name="file">*.tar</param>
+        <param name="compression">gz</param>
+    </service>
+</services>
